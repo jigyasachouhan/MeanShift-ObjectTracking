@@ -119,6 +119,9 @@ while True:
 
     m10 = np.sum(xs * window)
     m01 = np.sum(ys * window)
+    
+    xc = m10 / m00
+    yc = m01 / m00
 
     # second order moments
     m20 = np.sum((xs**2) * window)
