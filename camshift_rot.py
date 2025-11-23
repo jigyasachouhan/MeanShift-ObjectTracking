@@ -10,11 +10,12 @@ import math
 # vidCapture = cv2.VideoCapture('rubics.mp4')
 # vidCapture = cv2.VideoCapture('walk.mp4')
 # vidCapture = cv2.VideoCapture('walksit.mp4')
-vidCapture = cv2.VideoCapture('test_person.mp4')
+# vidCapture = cv2.VideoCapture('test_person.mp4')
 # vidCapture = cv2.VideoCapture('chainsnatch.mp4')
 # vidCapture = cv2.VideoCapture('raghav.mp4')
 # vidCapture = cv2.VideoCapture('tiger.mp4')
 # vidCapture = cv2.VideoCapture('attacktiger.mp4')
+vidCapture = cv2.VideoCapture('lioness.mp4')
 
 ret, frame = vidCapture.read()
 if not ret:
@@ -100,7 +101,7 @@ while True:
     new_w = int(r1 * math.sqrt(m00))
     new_h = int(r2 * math.sqrt(m00))
 
-    MIN_SIZE = 12
+    MIN_SIZE = 50
     MAX_SIZE_W = W // 2
     MAX_SIZE_H = H // 2
 
