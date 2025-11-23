@@ -3,16 +3,18 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 import cv2
 import math
-import matplotlib.colors as colors
 
 
-# open video file (use VideoCapture, not imread)
 # vidCapture = cv2.VideoCapture('case.mp4')
 # vidCapture = cv2.VideoCapture('rubics.mp4')
 # vidCapture = cv2.VideoCapture('walk.mp4')
 # vidCapture = cv2.VideoCapture('walksit.mp4')
-# vidCapture = cv2.VideoCapture('test_person.mp4')
-vidCapture = cv2.VideoCapture('chainsnatch.mp4')
+vidCapture = cv2.VideoCapture('test_person.mp4')
+# vidCapture = cv2.VideoCapture('chainsnatch.mp4')
+# vidCapture = cv2.VideoCapture('raghav.mp4')
+# vidCapture = cv2.VideoCapture('tiger.mp4')
+# vidCapture = cv2.VideoCapture('attacktiger.mp4')
+
 
 ret, frame = vidCapture.read()
 if not ret:
@@ -24,8 +26,6 @@ cv2.destroyWindow("Select Object")
 
 # Reset video to start
 vidCapture.set(cv2.CAP_PROP_POS_FRAMES, 0)
-display_w = w
-display_h = h
 
 track_window = (x, y, w, h)
 
@@ -46,7 +46,7 @@ r1 = w / math.sqrt(m00_0)
 r2 = h / math.sqrt(m00_0)
 print(m00_0)
 
-prev_m00 = m00_0
+
 max_iters = 100
 
 while True:
@@ -73,8 +73,8 @@ while True:
         M01 = np.sum(np.arange(w)[None, :] * window)    # x-weighted
         M10 = np.sum(np.arange(h)[:, None] * window)    # y-weighted
 
-        xc = int(M01 / m00)
-        yc = int(M10 / m00)
+        xc = M01 / m00
+        yc = M10 / m00
 
 
         # correct centroid → global frame
@@ -90,17 +90,50 @@ while True:
             break
 
         track_window = (new_x, new_y, w, h)
-        
-    print("xc, yc:", xc, yc, "display_w, display_h:", display_w, display_h)
-    window_display = prob_map[yc-display_h//2:yc+display_h//2, xc-display_w//2:xc+display_w//2]
-    m00_display = np.sum(window_display)
-    display_h = int(display_h*math.sqrt(m00_display / prev_m00))
-    display_w = int(display_w*math.sqrt(m00_display / prev_m00))
-    prev_m00 = m00_display
     
+
+    new_w = int(r1 * math.sqrt(m00))
+    new_h = int(r2 * math.sqrt(m00))
+
+    H, W = frame.shape[:2]
+
+    # Define Size Limits
+    MIN_SIZE = 12       # Prevents the window from collapsing to zero
+    MAX_SIZE_W = W//2   # Prevents uncontrolled size explosion
+    MAX_SIZE_H = H//2
+
+    # Apply min/max limits to the size first
+    new_w = min(max(new_w, MIN_SIZE), MAX_SIZE_W)
+    new_h = min(max(new_h, MIN_SIZE), MAX_SIZE_H)
+
+    # 2. Calculate the Converged Global Centroid
+    # The true center of the object, which we want to center the new window on
+    center_x = x + xc
+    center_y = y + yc
+
+    # 3. Calculate New Top-Left Corner (Centering the new window)
+    # new_x_tl = center_x - (new_width / 2)
+    new_x_tl = int(center_x - new_w / 2)
+    new_y_tl = int(center_y - new_h / 2)
+
+    # 4. Clamp Position and Size to Video Boundaries
+
+    new_x_tl = max(0, new_x_tl)
+    new_y_tl = max(0, new_y_tl)
+
+    # Re-check size against right/bottom boundaries (since position might have been clamped)
+    # If the new window overflows, clip the size, maintaining the clamped top-left position
+    if new_x_tl + new_w > W:
+        new_w = W - new_x_tl
+    if new_y_tl + new_h > H:
+        new_h = H - new_y_tl
+
+    # 5. Final Update of the tracking window
+    track_window = (new_x_tl, new_y_tl, new_w, new_h)
+
     # Draw the final tracking window on the frame
     x, y, w, h = track_window # unpack the final clamped values
-    result = cv2.rectangle(frame, (int(xc - display_w//2), int(yc - display_h//2)), (int(xc + display_w//2), int(yc + display_h//2)), (0, 255, 0), 2)
+    result = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
     cv2.imshow('Tracking', result)
 
     if cv2.waitKey(30) & 0xFF == 27:

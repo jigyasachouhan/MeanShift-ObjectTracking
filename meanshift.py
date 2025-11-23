@@ -7,12 +7,12 @@ import matplotlib.colors as colors
 
 
 # open video file (use VideoCapture, not imread)
-vidCapture = cv2.VideoCapture('case.mp4')
+# vidCapture = cv2.VideoCapture('case.mp4')
 # vidCapture = cv2.VideoCapture('rubics.mp4')
 # vidCapture = cv2.VideoCapture('walk.mp4')
 # vidCapture = cv2.VideoCapture('walksit.mp4')
 # vidCapture = cv2.VideoCapture('test_person.mp4')
-# vidCapture = cv2.VideoCapture('chainsnatch.mp4')
+vidCapture = cv2.VideoCapture('chainsnatch.mp4')
 
 ret, frame = vidCapture.read()
 if not ret:
