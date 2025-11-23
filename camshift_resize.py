@@ -96,13 +96,13 @@ while True:
     H, W = frame.shape[:2]
 
     # What this does is helps us to have sane values - and prevents collapse
-    min = 12      
+    mina = 12      
     maxw = W//2   
     maxh = H//2
 
     # Apply min/max limits to the size first
-    new_w = min(max(new_w, min), maxw)
-    new_h = min(max(new_h, min), maxh)
+    new_w = min(max(new_w, mina), maxw)
+    new_h = min(max(new_h, mina), maxh)
 
     center_x = x + xc
     center_y = y + yc
