@@ -1,40 +1,29 @@
 import numpy as np
 import cv2
 import math
+import sys
 
-# -----------------------------------------------------------
-# Load Video
-# -----------------------------------------------------------
-# open video file (use VideoCapture, not imread)
-# vidCapture = cv2.VideoCapture('case.mp4')
-# vidCapture = cv2.VideoCapture('rubics.mp4')
-# vidCapture = cv2.VideoCapture('walk.mp4')
-# vidCapture = cv2.VideoCapture('walksit.mp4')
-# vidCapture = cv2.VideoCapture('test_person.mp4')
-# vidCapture = cv2.VideoCapture('chainsnatch.mp4')
-# vidCapture = cv2.VideoCapture('raghav.mp4')
-# vidCapture = cv2.VideoCapture('tiger.mp4')
-# vidCapture = cv2.VideoCapture('attacktiger.mp4')
-vidCapture = cv2.VideoCapture('lioness.mp4')
+print("Options for CLI are: case, rubics, walk, walksit, test_person, chainsnatch, raghav, tiger, attacktiger, lioness")
+
+name = sys.argv[1]
+
+print("Doing it for:", name)
+
+vidCapture = cv2.VideoCapture(f'videos/{name}.mp4')
+
 
 ret, frame = vidCapture.read()
+
 if not ret:
     raise ValueError("Could not read video")
 
-# -----------------------------------------------------------
-# Select ROI
-# -----------------------------------------------------------
 x, y, w, h = cv2.selectROI("Select Object", frame, fromCenter=False)
 cv2.destroyWindow("Select Object")
 
 track_window = (x, y, w, h)
 
-# Reset video
 vidCapture.set(cv2.CAP_PROP_POS_FRAMES, 0)
 
-# -----------------------------------------------------------
-# Build Target Histogram (Hue channel only)
-# -----------------------------------------------------------
 roi = frame[y:y+h, x:x+w]
 hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 hist_target = cv2.calcHist([hsv_roi], [0], None, [50], [0, 180]).astype(np.float32)
@@ -46,11 +35,8 @@ initial_prob = cv2.calcBackProject([hsv_frame], [0], hist_target, [0,180], 1).as
 m00_0 = np.sum(initial_prob[y:y+h, x:x+w])
 
 r1 = w / math.sqrt(m00_0)
-r2 = h / math.sqrt(m00_0)
+r2 = h / math.sqrt(m00_0) #remember initial scaling
 
-# -----------------------------------------------------------
-# Tracking Loop
-# -----------------------------------------------------------
 max_iters = 100
 
 while True:
@@ -61,9 +47,7 @@ while True:
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     prob_map = cv2.calcBackProject([hsv], [0], hist_target, [0,180], 1).astype(np.float32)
 
-    # -----------------------------------------------------------
-    # Mean Shift Iteration
-    # -----------------------------------------------------------
+    #the following loop converges to the new center
     for _ in range(max_iters):
         x, y, w, h = track_window
 
@@ -77,8 +61,8 @@ while True:
         xs = np.arange(w)[None, :]
         ys = np.arange(h)[:, None]
 
-        m10 = np.sum(xs * window)      # x-axis weighted
-        m01 = np.sum(ys * window)      # y-axis weighted
+        m10 = np.sum(xs * window)      
+        m01 = np.sum(ys * window)      
 
         xc = m10 / m00
         yc = m01 / m00
@@ -95,9 +79,7 @@ while True:
 
         track_window = (new_x, new_y, w, h)
 
-    # -----------------------------------------------------------
-    # Size Update (CamShift Width/Height)
-    # -----------------------------------------------------------
+
     new_w = int(r1 * math.sqrt(m00))
     new_h = int(r2 * math.sqrt(m00))
 
@@ -124,9 +106,7 @@ while True:
 
     track_window = (new_x_tl, new_y_tl, new_w, new_h)
 
-    # -----------------------------------------------------------
-    # Angle Calculation via Second-Order Moments
-    # -----------------------------------------------------------
+
     x, y, w, h = track_window
     window = prob_map[y:y+h, x:x+w]
 
@@ -139,9 +119,6 @@ while True:
 
     m10 = np.sum(xs * window)
     m01 = np.sum(ys * window)
-
-    xc = m10 / m00
-    yc = m01 / m00
 
     # second order moments
     m20 = np.sum((xs**2) * window)
@@ -158,18 +135,15 @@ while True:
     angle_deg = np.degrees(theta)
 
     # ellipse axis lengths
-    A = mu20 + mu02
-    B = math.sqrt(4 * mu11**2 + (mu20 - mu02)**2)
+    a = mu20 + mu02
+    b = math.sqrt(4 * mu11**2 + (mu20 - mu02)**2)
 
-    lambda1 = (A + B) / 2
-    lambda2 = (A - B) / 2
+    lambda1 = (a + b) / 2
+    lambda2 = (a - b) / 2
 
     major = 4 * math.sqrt(abs(lambda1))
     minor = 4 * math.sqrt(abs(lambda2))
 
-    # -----------------------------------------------------------
-    # Drawing Rotated Box
-    # -----------------------------------------------------------
     center = (int(x + xc), int(y + yc))
     size = (int(max(major, 10)), int(max(minor, 10)))
     rect = (center, size, angle_deg)

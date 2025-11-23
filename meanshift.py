@@ -4,16 +4,15 @@ from scipy.stats import norm
 import cv2
 import math
 import matplotlib.colors as colors
+import sys
 
+print("Options for CLI are: case, rubics, walk, walksit, test_person, chainsnatch, raghav, tiger, attacktiger, lioness")
 
-# open video file (use VideoCapture, not imread)
-# vidCapture = cv2.VideoCapture('case.mp4')
-# vidCapture = cv2.VideoCapture('rubics.mp4')
-# vidCapture = cv2.VideoCapture('walk.mp4')
-# vidCapture = cv2.VideoCapture('walksit.mp4')
-# vidCapture = cv2.VideoCapture('test_person.mp4')
-vidCapture = cv2.VideoCapture('chainsnatch.mp4')
+name = sys.argv[1]
 
+print("Doing it for:", name)
+
+vidCapture = cv2.VideoCapture(f'videos/{name}.mp4')
 ret, frame = vidCapture.read()
 if not ret:
     raise ValueError("Could not read video")
@@ -36,7 +35,6 @@ cv2.normalize(hist_target, hist_target, 0, 1, cv2.NORM_MINMAX)
 hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 initial_prob_map = cv2.calcBackProject([hsv_frame], [0], hist_target, [0,180], 1).astype(np.float32)
 
-# print(initial_prob_map)
 m00_0 = np.sum(initial_prob_map[y:y+h, x:x+w])
 print("m00_0:", m00_0)
 
@@ -68,11 +66,11 @@ while True:
             break
 
         # moments in window coordinates
-        M01 = np.sum(np.arange(w)[None, :] * window)    # x-weighted
-        M10 = np.sum(np.arange(h)[:, None] * window)    # y-weighted
+        m01 = np.sum(np.arange(w)[None, :] * window)    # x-weighted
+        m10 = np.sum(np.arange(h)[:, None] * window)    # y-weighted
 
-        xc = M01 / m00
-        yc = M10 / m00
+        xc = m01 / m00
+        yc = m10 / m00
 
 
         # correct centroid → global frame

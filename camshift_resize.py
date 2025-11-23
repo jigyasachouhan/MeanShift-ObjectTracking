@@ -3,17 +3,15 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 import cv2
 import math
+import sys
 
+print("Options for CLI are: case, rubics, walk, walksit, test_person, chainsnatch, raghav, tiger, attacktiger, lioness")
 
-# vidCapture = cv2.VideoCapture('case.mp4')
-# vidCapture = cv2.VideoCapture('rubics.mp4')
-# vidCapture = cv2.VideoCapture('walk.mp4')
-# vidCapture = cv2.VideoCapture('walksit.mp4')
-vidCapture = cv2.VideoCapture('test_person.mp4')
-# vidCapture = cv2.VideoCapture('chainsnatch.mp4')
-# vidCapture = cv2.VideoCapture('raghav.mp4')
-# vidCapture = cv2.VideoCapture('tiger.mp4')
-# vidCapture = cv2.VideoCapture('attacktiger.mp4')
+name = sys.argv[1]
+
+print("Doing it for:", name)
+
+vidCapture = cv2.VideoCapture(f'videos/{name}.mp4')
 
 
 ret, frame = vidCapture.read()
@@ -40,7 +38,7 @@ initial_prob_map = cv2.calcBackProject([hsv_frame], [0], hist_target, [0,180], 1
 
 # print(initial_prob_map)
 m00_0 = np.sum(initial_prob_map[y:y+h, x:x+w])
-print("m00_0:", m00_0)
+print("m00_0:", m00_0) #Just some debugging code
 
 r1 = w / math.sqrt(m00_0)
 r2 = h / math.sqrt(m00_0)
@@ -70,11 +68,11 @@ while True:
             break
 
         # moments in window coordinates
-        M01 = np.sum(np.arange(w)[None, :] * window)    # x-weighted
-        M10 = np.sum(np.arange(h)[:, None] * window)    # y-weighted
+        m01 = np.sum(np.arange(w)[None, :] * window)    # x-weighted
+        m10 = np.sum(np.arange(h)[:, None] * window)    # y-weighted
 
-        xc = M01 / m00
-        yc = M10 / m00
+        xc = m01 / m00
+        yc = m10 / m00
 
 
         # correct centroid → global frame
@@ -97,32 +95,25 @@ while True:
 
     H, W = frame.shape[:2]
 
-    # Define Size Limits
-    MIN_SIZE = 12       # Prevents the window from collapsing to zero
-    MAX_SIZE_W = W//2   # Prevents uncontrolled size explosion
-    MAX_SIZE_H = H//2
+    # What this does is helps us to have sane values - and prevents collapse
+    min = 12      
+    maxw = W//2   
+    maxh = H//2
 
     # Apply min/max limits to the size first
-    new_w = min(max(new_w, MIN_SIZE), MAX_SIZE_W)
-    new_h = min(max(new_h, MIN_SIZE), MAX_SIZE_H)
+    new_w = min(max(new_w, min), maxw)
+    new_h = min(max(new_h, min), maxh)
 
-    # 2. Calculate the Converged Global Centroid
-    # The true center of the object, which we want to center the new window on
     center_x = x + xc
     center_y = y + yc
 
-    # 3. Calculate New Top-Left Corner (Centering the new window)
-    # new_x_tl = center_x - (new_width / 2)
     new_x_tl = int(center_x - new_w / 2)
     new_y_tl = int(center_y - new_h / 2)
-
-    # 4. Clamp Position and Size to Video Boundaries
 
     new_x_tl = max(0, new_x_tl)
     new_y_tl = max(0, new_y_tl)
 
-    # Re-check size against right/bottom boundaries (since position might have been clamped)
-    # If the new window overflows, clip the size, maintaining the clamped top-left position
+    #This is just to ensure we don't go out of bounds
     if new_x_tl + new_w > W:
         new_w = W - new_x_tl
     if new_y_tl + new_h > H:
@@ -131,8 +122,7 @@ while True:
     # 5. Final Update of the tracking window
     track_window = (new_x_tl, new_y_tl, new_w, new_h)
 
-    # Draw the final tracking window on the frame
-    x, y, w, h = track_window # unpack the final clamped values
+    x, y, w, h = track_window #The final values after clamping
     result = cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
     cv2.imshow('Tracking', result)
 
